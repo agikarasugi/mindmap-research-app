@@ -1,12 +1,15 @@
+import { useState } from 'react'
 import { useAppStore } from '../../store/appStore'
 import { SplitPane } from './SplitPane'
 import { FileNavigator } from './FileNavigator'
 import { LeftPane } from '../leftPane/LeftPane'
 import { RightPane } from '../rightPane/RightPane'
+import { HelpModal } from '../common/HelpModal'
 
 export function AppShell() {
   const openProject = useAppStore((s) => s.openProject)
   const projectRoot = useAppStore((s) => s.projectRoot)
+  const [helpOpen, setHelpOpen] = useState(false)
 
   const folderName = projectRoot
     ? projectRoot.replace(/\\/g, '/').split('/').pop() ?? projectRoot
@@ -26,7 +29,16 @@ export function AppShell() {
         >
           Open Folder…
         </button>
+        <button
+          onClick={() => setHelpOpen(true)}
+          title="Help / Reference"
+          className="rounded bg-neutral-700 px-2 py-1 text-xs font-semibold text-neutral-300 hover:bg-neutral-600"
+        >
+          ?
+        </button>
       </header>
+
+      {helpOpen && <HelpModal onClose={() => setHelpOpen(false)} />}
 
       {/* Main content: Navigator | Editor | Map */}
       <div className="flex flex-1 overflow-hidden">
