@@ -137,7 +137,7 @@ export function FileNavigator() {
     : ''
 
   return (
-    <div className="flex h-full w-52 shrink-0 flex-col border-r border-neutral-700" style={{ backgroundColor: '#1a1a1a' }}>
+    <div className="flex h-full w-52 shrink-0 flex-col border-r border-neutral-700 bg-neutral-900">
       {/* Header */}
       <div className="flex shrink-0 items-center gap-1 border-b border-neutral-700 px-2 py-1.5">
         <span className="flex-1 truncate text-xs font-medium text-neutral-300" title={projectRoot ?? ''}>

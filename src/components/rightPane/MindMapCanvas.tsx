@@ -54,6 +54,7 @@ export function MindMapCanvas({ exportRef, fitViewRef }: Props) {
           nodes={visibleNodes}
           edges={visibleEdges}
           nodeTypes={nodeTypes}
+          colorMode={theme}
           nodesDraggable={false}
           nodesConnectable={false}
           edgesReconnectable={false}
@@ -64,13 +65,12 @@ export function MindMapCanvas({ exportRef, fitViewRef }: Props) {
         >
           <FitViewRegistrar fitViewRef={fitViewRef} />
           <Background color={theme === 'dark' ? '#334155' : '#cbd5e1'} gap={20} />
-          <Controls className="!bg-neutral-800 !border-neutral-700" />
+          <Controls />
           <MiniMap
             nodeColor={(n) => {
               const data = n.data as { nodeStyle?: { color?: string } }
               return data.nodeStyle?.color ?? '#334155'
             }}
-            className="!bg-neutral-800 !border-neutral-700"
           />
         </ReactFlow>
       )}
