@@ -11,7 +11,8 @@ document.addEventListener(
     if (!(e.ctrlKey || e.metaKey)) return
     // Ctrl+S → would reload the page ("save page")
     // Ctrl+=/+/-/0 → would zoom the entire WebView chrome
-    if (e.key === 's' || e.key === '=' || e.key === '+' || e.key === '-' || e.key === '0') {
+    const key = e.key.toLowerCase()
+    if (key === 's' || key === '=' || key === '+' || key === '-' || key === '0') {
       e.preventDefault()
     }
   },

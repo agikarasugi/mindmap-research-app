@@ -11,8 +11,8 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     watch: {
-      // Prevent Vite from watching the src-tauri directory
-      ignored: ['**/src-tauri/**'],
+      // Prevent Vite from watching the src-tauri directory or project data files
+      ignored: ['**/src-tauri/**', '**/*.yaml', '**/*.yml', '**/*.md'],
     },
   },
 
