@@ -115,6 +115,8 @@ interface AppState {
   setMarkdownViewMode: (tabId: string, mode: 'source' | 'preview') => void
   saveFile: (filePath: string, content: string) => Promise<void>
   saveBinaryFile: (filePath: string, data: Uint8Array) => Promise<void>
+  afterFileRenamed: (oldPath: string, newPath: string) => Promise<void>
+  afterFileDeleted: (deletedPath: string) => Promise<void>
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -335,5 +337,57 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   saveBinaryFile: async (filePath, data) => {
     await writeFile(filePath, data)
+  },
+
+  afterFileRenamed: async (oldPath, newPath) => {
+    const { tabs, mapYamlPath } = get()
+
+    // Update any open markdown tab that pointed to the old path
+    const updatedTabs = tabs.map((t) =>
+      t.kind === 'markdown' && t.filePath === oldPath
+        ? { ...t, filePath: newPath, label: fileLabel(newPath) }
+        : t,
+    )
+    set({ tabs: updatedTabs })
+
+    if (oldPath === mapYamlPath) {
+      // Reload the active map under its new path (also updates yaml tab label)
+      await get().loadMapFile(newPath)
+    }
+
+    await get().refreshProjectFiles()
+  },
+
+  afterFileDeleted: async (deletedPath) => {
+    const { tabs, activeTabId, mapYamlPath, projectRoot } = get()
+
+    // Close any markdown tab pointing to the deleted file
+    const deletedTab = tabs.find((t) => t.kind === 'markdown' && t.filePath === deletedPath)
+    if (deletedTab) {
+      const newTabs = tabs.filter((t) => t.id !== deletedTab.id)
+      set({
+        tabs: newTabs,
+        activeTabId: activeTabId === deletedTab.id ? 'yaml' : activeTabId,
+      })
+    }
+
+    if (deletedPath === mapYamlPath && projectRoot) {
+      // Re-scan the project and load another yaml, or create a starter
+      const freshFiles = await readProjectTree(projectRoot)
+      const yamlPaths = collectYamlPaths(freshFiles)
+
+      if (yamlPaths.length > 0) {
+        set({ projectFiles: freshFiles })
+        await get().loadMapFile(yamlPaths[0]!)
+      } else {
+        const newMapPath = await join(projectRoot, 'map.yaml')
+        await writeTextFile(newMapPath, STARTER_YAML)
+        const refreshedFiles = await readProjectTree(projectRoot)
+        set({ projectFiles: refreshedFiles })
+        await get().loadMapFile(newMapPath)
+      }
+    } else {
+      await get().refreshProjectFiles()
+    }
   },
 }))
