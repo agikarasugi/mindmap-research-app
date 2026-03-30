@@ -1,37 +1,69 @@
-import { type RefObject, type MutableRefObject, useEffect } from 'react'
+import { type MutableRefObject, useEffect, useRef } from 'react'
 import {
   ReactFlow,
   Background,
   Controls,
   MiniMap,
   useReactFlow,
+  getNodesBounds,
+  getViewportForBounds,
   type NodeTypes,
 } from '@xyflow/react'
 import { useAppStore } from '../../store/appStore'
 import { MindMapNode } from '../nodes/MindMapNode'
+import { exportViewportToDataUrl, boundsToImageSize, type ExportFormat } from '../../lib/exporter'
 
 const nodeTypes: NodeTypes = {
   mindmap: MindMapNode as never,
 }
 
 interface Props {
-  exportRef: RefObject<HTMLDivElement | null>
   fitViewRef: MutableRefObject<(() => void) | null>
+  exportFnRef: MutableRefObject<((format: ExportFormat) => Promise<string>) | null>
 }
 
 // Must live inside <ReactFlow> to access useReactFlow()
-function FitViewRegistrar({ fitViewRef }: { fitViewRef: MutableRefObject<(() => void) | null> }) {
-  const { fitView } = useReactFlow()
+function InternalRegistrar({
+  fitViewRef,
+  exportFnRef,
+  theme,
+}: {
+  fitViewRef: MutableRefObject<(() => void) | null>
+  exportFnRef: MutableRefObject<((format: ExportFormat) => Promise<string>) | null>
+  theme: 'dark' | 'light'
+}) {
+  const { fitView, getNodes } = useReactFlow()
+  const themeRef = useRef(theme)
+  useEffect(() => { themeRef.current = theme }, [theme])
 
   useEffect(() => {
     fitViewRef.current = () => fitView({ padding: 0.15, duration: 300 })
-    return () => { fitViewRef.current = null }
-  }, [fitView, fitViewRef])
+
+    exportFnRef.current = async (format: ExportFormat) => {
+      const nodes = getNodes()
+      if (nodes.length === 0) throw new Error('No nodes to export')
+
+      const bounds = getNodesBounds(nodes)
+      const { width, height } = boundsToImageSize(bounds)
+      const rfViewport = getViewportForBounds(bounds, width, height, 0.1, 4, 48)
+
+      const vpEl = document.querySelector<HTMLElement>('.react-flow__viewport')
+      if (!vpEl) throw new Error('React Flow viewport element not found')
+
+      const bg = themeRef.current === 'dark' ? '#0f172a' : '#f8fafc'
+      return exportViewportToDataUrl(vpEl, format, width, height, rfViewport, bg)
+    }
+
+    return () => {
+      fitViewRef.current = null
+      exportFnRef.current = null
+    }
+  }, [fitView, getNodes, fitViewRef, exportFnRef])
 
   return null
 }
 
-export function MindMapCanvas({ exportRef, fitViewRef }: Props) {
+export function MindMapCanvas({ fitViewRef, exportFnRef }: Props) {
   const visibleNodes = useAppStore((s) => s.visibleNodes)
   const visibleEdges = useAppStore((s) => s.visibleEdges)
   const projectRoot = useAppStore((s) => s.projectRoot)
@@ -40,7 +72,7 @@ export function MindMapCanvas({ exportRef, fitViewRef }: Props) {
   const isEmpty = visibleNodes.length === 0
 
   return (
-    <div ref={exportRef as RefObject<HTMLDivElement>} className="h-full w-full bg-neutral-950">
+    <div className="h-full w-full bg-neutral-950">
       {isEmpty && !projectRoot ? (
         <div className="flex h-full items-center justify-center text-sm text-neutral-600">
           Open a project to see the map
@@ -63,7 +95,7 @@ export function MindMapCanvas({ exportRef, fitViewRef }: Props) {
           fitViewOptions={{ padding: 0.15 }}
           proOptions={{ hideAttribution: true }}
         >
-          <FitViewRegistrar fitViewRef={fitViewRef} />
+          <InternalRegistrar fitViewRef={fitViewRef} exportFnRef={exportFnRef} theme={theme} />
           <Background color={theme === 'dark' ? '#334155' : '#cbd5e1'} gap={20} />
           <Controls />
           <MiniMap
