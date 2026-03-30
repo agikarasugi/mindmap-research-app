@@ -1,0 +1,126 @@
+- title: Health
+  style:
+    color: "#16a34a"
+    shape: pill
+  content: "Physical and mental wellbeing."
+  children:
+    - title: Exercise
+      style:
+        color: "#15803d"
+      link: ./health/exercise.md
+      children:
+        - title: Strength Training
+          content: "3× per week. Progressive overload."
+          style:
+            color: "#14532d"
+        - title: Running
+          content: "5 km twice a week. Goal: sub-25 min."
+          style:
+            color: "#14532d"
+        - title: Mobility
+          content: "10 min stretching every morning."
+          style:
+            color: "#14532d"
+    - title: Sleep
+      style:
+        color: "#15803d"
+      content: "8 hours. Consistent schedule, no screens after 10 pm."
+    - title: Nutrition
+      style:
+        color: "#15803d"
+      children:
+        - title: Meal Prep Sundays
+          content: "Cook for the week every Sunday afternoon."
+        - title: Reduce Caffeine
+          content: "No coffee after 2 pm."
+
+- title: Learning
+  style:
+    color: "#2563eb"
+    shape: pill
+  content: "Deliberate skill-building."
+  link: ./learning/plan.md
+  children:
+    - title: Programming
+      style:
+        color: "#1d4ed8"
+      children:
+        - title: Rust
+          content: "Complete Rustlings. Build one CLI tool."
+          style:
+            color: "#1e3a8a"
+        - title: Systems Design
+          content: "Read DDIA. Practice on Excalidraw."
+          style:
+            color: "#1e3a8a"
+        - title: Open Source
+          content: "Contribute to one project per quarter."
+          style:
+            color: "#1e3a8a"
+    - title: Reading
+      style:
+        color: "#1d4ed8"
+      link: ./learning/reading-list.md
+      children:
+        - title: Technical
+          content: "1 book per month."
+        - title: Fiction
+          content: "30 min before bed."
+    - title: Writing
+      style:
+        color: "#1d4ed8"
+      children:
+        - title: Blog
+          content: "One post per month on dev topics."
+        - title: Journal
+          content: "5 min reflection every evening."
+
+- title: Projects
+  style:
+    color: "#9333ea"
+    shape: pill
+  content: "Side projects and creative work."
+  children:
+    - title: Mind Map App
+      style:
+        color: "#7e22ce"
+      content: "This app! Ship a 1.0 release."
+      link: ./projects/mind-map-app.md
+      children:
+        - title: Core Features
+          content: "All items from PROJECT.md."
+        - title: Packaging
+          content: ".dmg, .msi, .AppImage."
+        - title: Landing Page
+          content: "Simple static site with screenshots."
+    - title: Home Automation
+      style:
+        color: "#7e22ce"
+      children:
+        - title: MQTT Dashboard
+          content: "Visualise sensor data from the flat."
+        - title: Presence Detection
+          content: "Auto lights on/off via phone ping."
+
+- title: Finance
+  style:
+    color: "#d97706"
+    shape: pill
+  content: "Financial health and stability."
+  children:
+    - title: Emergency Fund
+      content: "6 months of expenses in a savings account."
+      style:
+        color: "#b45309"
+    - title: Investments
+      style:
+        color: "#b45309"
+      children:
+        - title: Index Funds
+          content: "Monthly recurring investment. Don't touch it."
+        - title: Pension
+          content: "Max employer match contributions."
+    - title: Budget Review
+      content: "Monthly review of spending in each category."
+      style:
+        color: "#b45309"

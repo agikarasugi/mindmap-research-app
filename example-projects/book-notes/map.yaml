@@ -1,0 +1,123 @@
+- title: Data Storage & Retrieval
+  style:
+    color: "#92400e"
+    shape: pill
+  content: "How databases store data and answer queries efficiently."
+  children:
+    - title: Storage Engines
+      style:
+        color: "#78350f"
+      link: ./storage/engines.md
+      children:
+        - title: B-Tree
+          style:
+            color: "#451a03"
+            shape: diamond
+          content: "Balanced tree. Reads are fast; writes require in-place updates."
+        - title: LSM-Tree
+          style:
+            color: "#451a03"
+            shape: diamond
+          content: "Log-structured merge. Writes fast; reads need compaction."
+        - title: Heap Files
+          style:
+            color: "#451a03"
+            shape: diamond
+          content: "Rows stored in insertion order. Simple but unordered."
+    - title: Indexes
+      style:
+        color: "#78350f"
+      content: "Secondary structures to speed up reads at a write cost."
+      children:
+        - title: B-Tree Index
+          content: "Default in PostgreSQL, MySQL. Good for range queries."
+        - title: Hash Index
+          content: "O(1) equality lookups. No range support."
+        - title: Full-Text Index
+          content: "Inverted index. Powers LIKE and search queries."
+        - title: Covering Index
+          content: "Index includes all queried columns — avoids table lookup."
+
+- title: Distributed Systems
+  style:
+    color: "#0f766e"
+    shape: pill
+  content: "Challenges and trade-offs of multi-node systems."
+  children:
+    - title: Replication
+      style:
+        color: "#134e4a"
+      link: ./distributed/replication.md
+      children:
+        - title: Single-Leader
+          style:
+            color: "#042f2e"
+            shape: diamond
+          content: "All writes go to one node. Simple; leader is a bottleneck."
+        - title: Multi-Leader
+          style:
+            color: "#042f2e"
+            shape: diamond
+          content: "Multiple write nodes. Conflict resolution required."
+        - title: Leaderless
+          style:
+            color: "#042f2e"
+            shape: diamond
+          content: "Dynamo-style. Uses quorum reads/writes (r + w > n)."
+    - title: Consistency Models
+      style:
+        color: "#134e4a"
+      link: ./distributed/consistency.md
+      children:
+        - title: Linearisability
+          style:
+            shape: diamond
+          content: "Strongest guarantee. Behaves like one copy of the data."
+        - title: Causal Consistency
+          style:
+            shape: diamond
+          content: "Preserves cause-effect ordering. Weaker than linearisable."
+        - title: Eventual Consistency
+          style:
+            shape: diamond
+          content: "All replicas converge given no new writes. Very weak."
+    - title: Consensus
+      style:
+        color: "#134e4a"
+      children:
+        - title: Paxos
+          content: "Original consensus algorithm. Complex to implement correctly."
+        - title: Raft
+          content: "Designed for understandability. Used in etcd, CockroachDB."
+        - title: Zab
+          content: "ZooKeeper's protocol. Atomic broadcast variant."
+
+- title: Transactions
+  style:
+    color: "#6d28d9"
+    shape: pill
+  content: "ACID properties and their implementation trade-offs."
+  link: ./transactions/acid.md
+  children:
+    - title: Isolation Levels
+      style:
+        color: "#4c1d95"
+      children:
+        - title: Read Uncommitted
+          content: "Dirty reads possible."
+        - title: Read Committed
+          content: "No dirty reads. Default in PostgreSQL."
+        - title: Repeatable Read
+          content: "No non-repeatable reads. Snapshot isolation."
+        - title: Serialisable
+          content: "Full isolation. Slowest."
+    - title: Concurrency Control
+      style:
+        color: "#4c1d95"
+      children:
+        - title: 2PL
+          content: "Two-phase locking. Pessimistic. Can deadlock."
+        - title: MVCC
+          content: "Multi-version concurrency control. Readers don't block writers."
+        - title: SSI
+          content: "Serialisable snapshot isolation. Optimistic; detects conflicts."

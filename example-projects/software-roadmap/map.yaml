@@ -1,0 +1,90 @@
+- title: Product Roadmap 2025
+  content: "Three-quarter plan for the Orion platform."
+  link: ./overview.md
+  children:
+    - title: Q1 — Foundation
+      style:
+        color: "#1d4ed8"
+        shape: pill
+      content: "Core infrastructure that everything else builds on."
+      children:
+        - title: Authentication
+          style:
+            color: "#1e40af"
+          content: "Secure, standards-compliant auth layer."
+          link: ./docs/auth.md
+          children:
+            - title: OAuth 2.0
+              content: "Google and GitHub providers."
+            - title: Multi-Factor Auth
+              content: "TOTP and SMS fallback."
+            - title: Session Management
+              content: "Redis-backed, 30-day rolling expiry."
+        - title: Database Layer
+          style:
+            color: "#1e40af"
+          content: "Schema, migrations, and connection pooling."
+          link: ./docs/database.md
+          children:
+            - title: Schema Design
+              content: "Normalised PostgreSQL schema."
+            - title: Migration System
+              content: "golang-migrate with rollback support."
+            - title: Connection Pooling
+              content: "PgBouncer, max 100 connections."
+
+    - title: Q2 — Features
+      style:
+        color: "#7c3aed"
+        shape: pill
+      content: "User-facing features for the initial release."
+      children:
+        - title: Dashboard
+          style:
+            color: "#6d28d9"
+          children:
+            - title: Analytics Charts
+              content: "Time-series with recharts."
+            - title: Export Reports
+              content: "CSV and PDF output."
+            - title: Custom Widgets
+              content: "Drag-and-drop layout."
+        - title: Notifications
+          style:
+            color: "#6d28d9"
+          children:
+            - title: Email
+              content: "Transactional via Resend."
+            - title: In-app
+              content: "WebSocket push, badge counts."
+            - title: Webhooks
+              content: "User-configurable outbound events."
+
+    - title: Q3 — Scale
+      style:
+        color: "#059669"
+        shape: pill
+      content: "Performance, reliability, and visibility at scale."
+      children:
+        - title: Performance
+          style:
+            color: "#047857"
+          children:
+            - title: Caching Layer
+              content: "Redis for hot queries and session data."
+            - title: Query Optimisation
+              content: "EXPLAIN ANALYZE audit on all slow queries."
+            - title: CDN Assets
+              content: "Static assets via Cloudflare R2."
+        - title: Observability
+          style:
+            color: "#047857"
+          content: "Logs, metrics, and distributed tracing."
+          link: ./docs/observability.md
+          children:
+            - title: Structured Logging
+              content: "JSON logs shipped to Loki."
+            - title: Metrics
+              content: "Prometheus + Grafana dashboards."
+            - title: Tracing
+              content: "OpenTelemetry with Tempo backend."
