@@ -33,8 +33,8 @@ export async function exportViewportToDataUrl(
     },
   }
 
-  if (format === 'png') return toPng(viewportEl, { ...opts, pixelRatio: 2 })
-  if (format === 'jpg') return toJpeg(viewportEl, { ...opts, pixelRatio: 2, quality: 0.95 })
+  if (format === 'png') return toPng(viewportEl, { ...opts, pixelRatio: 1.5 })
+  if (format === 'jpg') return toJpeg(viewportEl, { ...opts, pixelRatio: 1.5, quality: 0.92 })
   return toSvg(viewportEl, opts)
 }
 
