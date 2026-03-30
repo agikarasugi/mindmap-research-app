@@ -7,31 +7,31 @@ This document covers the architecture, data flow, and conventions an agent needs
 ## Architecture overview
 
 ```
-┌──────────────────────────────────────────────────────────┐
-│  Tauri 2 shell  (src-tauri/)                             │
-│  ┌────────────────────────────────────────────────────┐  │
-│  │  React + TypeScript frontend  (src/)               │  │
-│  │                                                    │  │
-│  │  ┌─────────────────┐  ┌──────────────────────┐    │  │
-│  │  │  Left pane       │  │  Right pane           │    │  │
-│  │  │  TabBar          │  │  MapHeader (export)   │    │  │
-│  │  │  YamlTab         │  │  MindMapCanvas        │    │  │
-│  │  │  MarkdownTab     │  │  └─ ReactFlow          │    │  │
-│  │  └────────┬─────────┘  │     └─ MindMapNode    │    │  │
-│  │           │            └──────────────────────┘    │  │
-│  │           └──── Zustand store (appStore.ts) ────── │  │
-│  │                  │                                  │  │
-│  │           ┌──────┴───────┐                         │  │
-│  │           │  lib/         │                        │  │
-│  │           │  yamlParser   │                        │  │
-│  │           │  graphBuilder │                        │  │
-│  │           │  dagreLayout  │                        │  │
-│  │           │  exporter     │                        │  │
-│  │           └───────────────┘                        │  │
-│  └────────────────────────────────────────────────────┘  │
-│                                                          │
-│  Tauri plugins: tauri-plugin-fs, tauri-plugin-dialog     │
-└──────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────┐
+│  Tauri 2 shell  (src-tauri/)                                   │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │  React + TypeScript frontend  (src/)                     │  │
+│  │                                                          │  │
+│  │  ┌──────────────┐  ┌─────────────────┐  ┌────────────┐  │  │
+│  │  │ FileNavigator│  │  Left pane       │  │ Right pane │  │  │
+│  │  │ (file tree)  │  │  TabBar          │  │ MapHeader  │  │  │
+│  │  │ .yaml → load │  │  YamlTab         │  │ MindMap-   │  │  │
+│  │  │ .md   → tab  │  │  MarkdownTab     │  │ Canvas     │  │  │
+│  │  └──────┬───────┘  └────────┬─────────┘  │ └─ReactFlow│  │  │
+│  │         │                   │            └────────────┘  │  │
+│  │         └───────────────────┴── Zustand store ────────── │  │
+│  │                                    │                      │  │
+│  │                             ┌──────┴───────┐             │  │
+│  │                             │  lib/         │            │  │
+│  │                             │  yamlParser   │            │  │
+│  │                             │  graphBuilder │            │  │
+│  │                             │  dagreLayout  │            │  │
+│  │                             │  exporter     │            │  │
+│  │                             └───────────────┘            │  │
+│  └──────────────────────────────────────────────────────────┘  │
+│                                                                │
+│  Tauri plugins: tauri-plugin-fs, tauri-plugin-dialog           │
+└────────────────────────────────────────────────────────────────┘
 ```
 
 The frontend is a pure React SPA. All file system access goes through Tauri plugins via `@tauri-apps/plugin-fs` and `@tauri-apps/plugin-dialog`. There are no custom Rust commands — the Rust side only registers the two plugins.
@@ -46,6 +46,7 @@ src/
     yaml.ts          YamlNode, YamlNodeStyle — the raw YAML schema shape
     graph.ts         MindMapFlowNode, MindMapFlowEdge — React Flow node/edge types
     tabs.ts          TabDescriptor union (YamlTab | MarkdownTab)
+    files.ts         FileNode — tree node used by FileNavigator and the store
 
   lib/               Pure functions, no React, no Tauri, unit-testable
     yamlParser.ts    string → YamlNode[]  (wraps js-yaml)
@@ -60,7 +61,8 @@ src/
     useTauriFs.ts    Thin wrappers around Tauri FS and dialog APIs
 
   components/
-    layout/          AppShell (title bar + split body), SplitPane (draggable divider)
+    layout/          AppShell (title bar + 3-column body), SplitPane (draggable divider),
+                     FileNavigator (project file tree sidebar)
     leftPane/        LeftPane, TabBar, YamlTab, MarkdownTab
     rightPane/       RightPane, MapHeader, MindMapCanvas
     nodes/           MindMapNode (custom React Flow node), CollapseButton
@@ -119,13 +121,15 @@ The store is the single mutable source of truth. Components read slices via `use
 - `MarkdownTab` holds file content in local `useState` (loaded once per mount).
 - `SplitPane` holds the divider position in local `useState`.
 - `MapHeader` holds the export dropdown open/closed state.
+- `FileNavigator` holds the set of expanded directory paths in local `useState`.
 
 ### State fields
 
 | Field | Type | Purpose |
 |---|---|---|
 | `projectRoot` | `string \| null` | Absolute path to the open folder |
-| `mapYamlPath` | `string \| null` | Absolute path to `map.yaml` |
+| `projectFiles` | `FileNode[]` | Tree of `.yaml`/`.md` files shown in the navigator |
+| `mapYamlPath` | `string \| null` | Absolute path to the currently active map file (any `.yaml`) |
 | `rawYaml` | `string` | Current YAML text (bound to Monaco editor) |
 | `yamlError` | `string \| null` | Parse error message shown in ErrorBanner |
 | `allNodes` | `MindMapFlowNode[]` | Full node set from last render |
@@ -141,7 +145,9 @@ The store is the single mutable source of truth. Components read slices via `use
 
 | Action | What it does |
 |---|---|
-| `openProject()` | Opens folder dialog → validates `map.yaml` exists → reads it → calls `renderMap()` |
+| `openProject()` | Opens folder dialog → scans for `.yaml` files → auto-creates `map.yaml` if none found → loads preferred map → calls `renderMap()` |
+| `loadMapFile(filePath)` | Reads any `.yaml` file, updates the YAML tab label/path, resets collapse state, calls `renderMap()` |
+| `refreshProjectFiles()` | Re-scans the project root and updates `projectFiles` |
 | `updateRawYaml(yaml)` | Syncs Monaco editor value to `rawYaml`; does **not** trigger render |
 | `renderMap()` | Full pipeline: parse → build → layout → update store |
 | `toggleCollapse(nodeId)` | Collapse/expand subtree; re-layouts visible nodes |
@@ -226,7 +232,8 @@ When adding logic to `yamlParser.ts` or `graphBuilder.ts`, add corresponding tes
 ## Key invariants to preserve
 
 - **`allNodes` / `allEdges` are never mutated after render** — `toggleCollapse` derives `visibleNodes` / `visibleEdges` from them by filtering; it does not modify them.
-- **The YAML tab (`id: 'yaml'`) is always `tabs[0]`** and cannot be closed (`closeTab` no-ops on it).
-- **`renderMap()` resets `collapsedNodeIds` to an empty set** — collapse state is intentionally ephemeral per-render.
+- **The YAML tab (`id: 'yaml'`) is always `tabs[0]`** and cannot be closed (`closeTab` no-ops on it). Its `filePath` and `label` change when `loadMapFile` is called.
+- **`renderMap()` and `loadMapFile()` both reset `collapsedNodeIds`** — collapse state is intentionally ephemeral and does not persist across map switches or re-renders.
+- **`projectFiles` is not auto-refreshed** — it is populated on `openProject()` and updated only by an explicit `refreshProjectFiles()` call. It does not reflect files created/deleted outside the app until refreshed.
 - **`MindMapCanvas` is read-only** — `nodesDraggable`, `nodesConnectable`, and `edgesReconnectable` are all `false`. Do not change this.
 - **No custom Rust commands** — all backend functionality uses official Tauri plugin APIs. Adding custom Rust commands requires updating `src-tauri/src/lib.rs` and `src-tauri/capabilities/default.json`.
