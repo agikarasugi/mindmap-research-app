@@ -1,0 +1,25 @@
+@import "tailwindcss";
+@import "@xyflow/react/dist/style.css";
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  background-color: #0f172a;
+  color: #f1f5f9;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* React Flow: override default white background */
+.react-flow__renderer {
+  background: transparent;
+}
