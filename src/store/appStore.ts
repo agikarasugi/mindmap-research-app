@@ -8,6 +8,7 @@ import { applyDagreLayout } from '../lib/dagreLayout'
 import type { MindMapFlowNode, MindMapFlowEdge } from '../types/graph'
 import type { TabDescriptor, MarkdownTab } from '../types/tabs'
 import type { FileNode } from '../types/files'
+import { DEFAULT_MAP_SETTINGS, NODE_HEIGHT, SPACING_CONFIG, type MapSettings } from '../types/settings'
 
 // Shown when a new project is created with no existing YAML files
 const STARTER_YAML = `\
@@ -97,6 +98,10 @@ interface AppState {
   theme: 'dark' | 'light'
   toggleTheme: () => void
 
+  // Map display settings
+  mapSettings: MapSettings
+  setMapSettings: (patch: Partial<MapSettings>) => void
+
   // Actions
   openProject: () => Promise<void>
   loadMapFile: (filePath: string) => Promise<void>
@@ -134,6 +139,23 @@ export const useAppStore = create<AppState>((set, get) => ({
       localStorage.setItem('theme', next)
       return { theme: next }
     }),
+
+  mapSettings: (() => {
+    try {
+      const saved = localStorage.getItem('mapSettings')
+      return saved ? { ...DEFAULT_MAP_SETTINGS, ...JSON.parse(saved) } : DEFAULT_MAP_SETTINGS
+    } catch {
+      return DEFAULT_MAP_SETTINGS
+    }
+  })(),
+  setMapSettings: (patch) => {
+    set((s) => {
+      const next = { ...s.mapSettings, ...patch }
+      localStorage.setItem('mapSettings', JSON.stringify(next))
+      return { mapSettings: next }
+    })
+    get().renderMap()
+  },
 
   openProject: async () => {
     const selected = await open({ directory: true, multiple: false })
@@ -207,13 +229,17 @@ export const useAppStore = create<AppState>((set, get) => ({
   updateRawYaml: (yaml) => set({ rawYaml: yaml }),
 
   renderMap: () => {
-    const { rawYaml, projectRoot } = get()
+    const { rawYaml, projectRoot, mapSettings } = get()
     if (!projectRoot) return
+
+    const { nodeWidth, ranksep, nodesep } = SPACING_CONFIG[mapSettings.spacing]
+    const nodeHeight = NODE_HEIGHT[mapSettings.padding]
+    const dims = { nodeWidth, nodeHeight, ranksep, nodesep }
 
     try {
       const yamlNodes = parseYaml(rawYaml)
       const { nodes, edges, childMap } = buildGraph(yamlNodes, projectRoot)
-      const positionedNodes = applyDagreLayout(nodes, edges)
+      const positionedNodes = applyDagreLayout(nodes, edges, 'LR', dims)
 
       set({
         allNodes: positionedNodes,
@@ -251,7 +277,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       data: { ...n.data, isCollapsed: next.has(n.id) },
     }))
 
-    const laid = applyDagreLayout(updatedNodes, visibleEdges)
+    const { mapSettings } = get()
+    const { nodeWidth, ranksep, nodesep } = SPACING_CONFIG[mapSettings.spacing]
+    const nodeHeight = NODE_HEIGHT[mapSettings.padding]
+    const laid = applyDagreLayout(updatedNodes, visibleEdges, 'LR', { nodeWidth, nodeHeight, ranksep, nodesep })
     set({ collapsedNodeIds: next, visibleNodes: laid, visibleEdges })
   },
 

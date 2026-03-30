@@ -3,6 +3,7 @@ import { Handle, Position, type NodeProps } from '@xyflow/react'
 import { CollapseButton } from './CollapseButton'
 import { useAppStore } from '../../store/appStore'
 import type { MindMapNodeData } from '../../types/graph'
+import { FONT_SIZE_CLASS, PADDING_CLASS } from '../../types/settings'
 
 function DocIcon() {
   return (
@@ -38,16 +39,19 @@ export const MindMapNode = memo(function MindMapNode({
   data,
 }: NodeProps & { data: MindMapNodeData }) {
   const openMarkdownTab = useAppStore((s) => s.openMarkdownTab)
+  const mapSettings = useAppStore((s) => s.mapSettings)
 
   const bg = data.nodeStyle?.color ?? '#334155' // slate-700 fallback
   const shape = data.nodeStyle?.shape
+  const paddingCls = PADDING_CLASS[mapSettings.padding]
+  const fontCls = FONT_SIZE_CLASS[mapSettings.fontSize]
 
   return (
     <>
       <Handle type="target" position={Position.Left} className="!bg-neutral-500" />
 
       <div
-        className="relative flex min-w-[140px] max-w-[200px] items-center justify-center px-3 py-2 text-sm font-medium text-white shadow-md"
+        className={`relative flex min-w-[140px] max-w-[200px] items-center justify-center font-medium text-white shadow-md ${paddingCls} ${fontCls}`}
         style={{ backgroundColor: bg, ...shapeStyle(shape) }}
       >
         {/* Document icon — top-right */}

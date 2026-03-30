@@ -1,21 +1,35 @@
 import dagre from 'dagre'
 import type { MindMapFlowNode, MindMapFlowEdge } from '../types/graph'
 
-const NODE_WIDTH = 200
-const NODE_HEIGHT = 60
+interface LayoutDimensions {
+  nodeWidth: number
+  nodeHeight: number
+  ranksep: number
+  nodesep: number
+}
+
+const DEFAULT_DIMS: LayoutDimensions = {
+  nodeWidth: 200,
+  nodeHeight: 60,
+  ranksep: 80,
+  nodesep: 40,
+}
 
 export function applyDagreLayout(
   nodes: MindMapFlowNode[],
   edges: MindMapFlowEdge[],
   direction: 'LR' | 'TB' = 'LR',
+  dims: LayoutDimensions = DEFAULT_DIMS,
 ): MindMapFlowNode[] {
   if (nodes.length === 0) return nodes
 
+  const { nodeWidth, nodeHeight, ranksep, nodesep } = dims
+
   const g = new dagre.graphlib.Graph()
-  g.setGraph({ rankdir: direction, ranksep: 80, nodesep: 40 })
+  g.setGraph({ rankdir: direction, ranksep, nodesep })
   g.setDefaultEdgeLabel(() => ({}))
 
-  nodes.forEach((n) => g.setNode(n.id, { width: NODE_WIDTH, height: NODE_HEIGHT }))
+  nodes.forEach((n) => g.setNode(n.id, { width: nodeWidth, height: nodeHeight }))
   edges.forEach((e) => {
     if (e.source && e.target) g.setEdge(e.source, e.target)
   })
@@ -28,8 +42,8 @@ export function applyDagreLayout(
     return {
       ...n,
       position: {
-        x: pos.x - NODE_WIDTH / 2,
-        y: pos.y - NODE_HEIGHT / 2,
+        x: pos.x - nodeWidth / 2,
+        y: pos.y - nodeHeight / 2,
       },
     }
   })
