@@ -93,6 +93,10 @@ interface AppState {
   tabs: TabDescriptor[]
   activeTabId: string
 
+  // Theme
+  theme: 'dark' | 'light'
+  toggleTheme: () => void
+
   // Actions
   openProject: () => Promise<void>
   loadMapFile: (filePath: string) => Promise<void>
@@ -122,6 +126,14 @@ export const useAppStore = create<AppState>((set, get) => ({
   childMap: {},
   tabs: [],
   activeTabId: 'yaml',
+
+  theme: (localStorage.getItem('theme') as 'dark' | 'light' | null) ?? 'dark',
+  toggleTheme: () =>
+    set((s) => {
+      const next = s.theme === 'dark' ? 'light' : 'dark'
+      localStorage.setItem('theme', next)
+      return { theme: next }
+    }),
 
   openProject: async () => {
     const selected = await open({ directory: true, multiple: false })

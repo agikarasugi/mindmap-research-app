@@ -35,6 +35,7 @@ export function MindMapCanvas({ exportRef, fitViewRef }: Props) {
   const visibleNodes = useAppStore((s) => s.visibleNodes)
   const visibleEdges = useAppStore((s) => s.visibleEdges)
   const projectRoot = useAppStore((s) => s.projectRoot)
+  const theme = useAppStore((s) => s.theme)
 
   const isEmpty = visibleNodes.length === 0
 
@@ -62,7 +63,7 @@ export function MindMapCanvas({ exportRef, fitViewRef }: Props) {
           proOptions={{ hideAttribution: true }}
         >
           <FitViewRegistrar fitViewRef={fitViewRef} />
-          <Background color="#334155" gap={20} />
+          <Background color={theme === 'dark' ? '#334155' : '#cbd5e1'} gap={20} />
           <Controls className="!bg-neutral-800 !border-neutral-700" />
           <MiniMap
             nodeColor={(n) => {

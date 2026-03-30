@@ -15,9 +15,33 @@ body,
   padding: 0;
   height: 100%;
   overflow: hidden;
-  background-color: #0f172a;
-  color: #f1f5f9;
+  background-color: var(--app-bg);
+  color: var(--app-fg);
   font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* ── Dark theme (default) ── */
+:root {
+  --app-bg: #0f172a;
+  --app-fg: #f1f5f9;
+}
+
+/* ── Light theme ── toggled by adding .light to <html> */
+.light {
+  --app-bg: #f8fafc;
+  --app-fg: #0f172a;
+
+  /* Reverse the neutral scale so every bg-neutral-* / text-neutral-* adapts */
+  --color-neutral-950: oklch(100% 0 0);
+  --color-neutral-900: oklch(97.5% 0 0);
+  --color-neutral-800: oklch(93% 0 0);
+  --color-neutral-700: oklch(87% 0 0);
+  --color-neutral-600: oklch(79% 0 0);
+  --color-neutral-500: oklch(60% 0 0);
+  --color-neutral-400: oklch(43.9% 0 0);
+  --color-neutral-300: oklch(37.1% 0 0);
+  --color-neutral-200: oklch(26.9% 0 0);
+  --color-neutral-100: oklch(20.5% 0 0);
 }
 
 /* React Flow: override default white background */

@@ -11,6 +11,7 @@ export function YamlTab() {
   const updateRawYaml = useAppStore((s) => s.updateRawYaml)
   const renderMap = useAppStore((s) => s.renderMap)
   const saveFile = useAppStore((s) => s.saveFile)
+  const theme = useAppStore((s) => s.theme)
 
   const editorRef = useRef<MonacoType.editor.IStandaloneCodeEditor | null>(null)
 
@@ -48,7 +49,7 @@ export function YamlTab() {
         <Editor
           height="100%"
           language="yaml"
-          theme="vs-dark"
+          theme={theme === 'dark' ? 'vs-dark' : 'vs'}
           value={rawYaml}
           onChange={(v) => updateRawYaml(v ?? '')}
           onMount={handleMount}

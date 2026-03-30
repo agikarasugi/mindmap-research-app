@@ -14,6 +14,7 @@ interface Props {
 export function MarkdownTab({ tab }: Props) {
   const saveFile = useAppStore((s) => s.saveFile)
   const setMarkdownViewMode = useAppStore((s) => s.setMarkdownViewMode)
+  const theme = useAppStore((s) => s.theme)
 
   const [content, setContent] = useState('')
   const [loading, setLoading] = useState(true)
@@ -93,7 +94,7 @@ export function MarkdownTab({ tab }: Props) {
           <Editor
             height="100%"
             language="markdown"
-            theme="vs-dark"
+            theme={theme === 'dark' ? 'vs-dark' : 'vs'}
             value={content}
             onChange={(v) => setContent(v ?? '')}
             onMount={handleMount}
@@ -107,7 +108,7 @@ export function MarkdownTab({ tab }: Props) {
           />
         ) : (
           <div className="h-full overflow-auto bg-neutral-900 p-6">
-            <div className="prose prose-invert max-w-none prose-headings:text-neutral-100 prose-p:text-neutral-300 prose-a:text-blue-400 prose-code:text-neutral-200 prose-strong:text-neutral-100">
+            <div className={`prose max-w-none prose-a:text-blue-500 ${theme === 'dark' ? 'prose-invert prose-headings:text-neutral-100 prose-p:text-neutral-300 prose-code:text-neutral-200 prose-strong:text-neutral-100' : ''}`}>
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
             </div>
           </div>
