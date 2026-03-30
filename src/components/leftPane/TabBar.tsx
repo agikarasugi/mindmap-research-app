@@ -1,3 +1,4 @@
+import { useAppStore } from '../../store/appStore'
 import type { TabDescriptor } from '../../types/tabs'
 
 interface Props {
@@ -8,10 +9,13 @@ interface Props {
 }
 
 export function TabBar({ tabs, activeTabId, onSelect, onClose }: Props) {
+  const dirtyTabs = useAppStore((s) => s.dirtyTabs)
+
   return (
     <div className="flex shrink-0 overflow-x-auto border-b border-neutral-700 bg-neutral-800">
       {tabs.map((tab) => {
         const isActive = tab.id === activeTabId
+        const isDirty = dirtyTabs.has(tab.id)
         return (
           <div
             key={tab.id}
@@ -22,6 +26,9 @@ export function TabBar({ tabs, activeTabId, onSelect, onClose }: Props) {
                 : 'text-neutral-400 hover:bg-neutral-750 hover:text-neutral-200'
             }`}
           >
+            {isDirty && (
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400" title="Unsaved changes" />
+            )}
             <span className="max-w-[120px] truncate">{tab.label}</span>
             {tab.kind === 'markdown' && (
               <button

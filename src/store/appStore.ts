@@ -98,6 +98,10 @@ interface AppState {
   theme: 'dark' | 'light'
   toggleTheme: () => void
 
+  // Per-tab dirty (unsaved) tracking — drives the tab-bar dot
+  dirtyTabs: Set<string>
+  setTabDirty: (tabId: string, dirty: boolean) => void
+
   // Map display settings
   mapSettings: MapSettings
   setMapSettings: (patch: Partial<MapSettings>) => void
@@ -133,6 +137,14 @@ export const useAppStore = create<AppState>((set, get) => ({
   childMap: {},
   tabs: [],
   activeTabId: 'yaml',
+
+  dirtyTabs: new Set<string>(),
+  setTabDirty: (tabId, dirty) =>
+    set((s) => {
+      const next = new Set(s.dirtyTabs)
+      dirty ? next.add(tabId) : next.delete(tabId)
+      return { dirtyTabs: next }
+    }),
 
   theme: (localStorage.getItem('theme') as 'dark' | 'light' | null) ?? 'dark',
   toggleTheme: () =>
@@ -307,7 +319,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   closeTab: (tabId) => {
-    const { tabs, activeTabId } = get()
+    const { tabs, activeTabId, dirtyTabs } = get()
     if (tabId === 'yaml') return
 
     const idx = tabs.findIndex((t) => t.id === tabId)
@@ -318,7 +330,9 @@ export const useAppStore = create<AppState>((set, get) => ({
       nextActive = next[Math.max(0, idx - 1)]?.id ?? 'yaml'
     }
 
-    set({ tabs: next, activeTabId: nextActive })
+    const nextDirty = new Set(dirtyTabs)
+    nextDirty.delete(tabId)
+    set({ tabs: next, activeTabId: nextActive, dirtyTabs: nextDirty })
   },
 
   setActiveTab: (tabId) => set({ activeTabId: tabId }),
