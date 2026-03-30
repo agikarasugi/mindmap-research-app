@@ -1,9 +1,10 @@
-import { type RefObject } from 'react'
+import { type RefObject, type MutableRefObject, useEffect } from 'react'
 import {
   ReactFlow,
   Background,
   Controls,
   MiniMap,
+  useReactFlow,
   type NodeTypes,
 } from '@xyflow/react'
 import { useAppStore } from '../../store/appStore'
@@ -15,9 +16,22 @@ const nodeTypes: NodeTypes = {
 
 interface Props {
   exportRef: RefObject<HTMLDivElement | null>
+  fitViewRef: MutableRefObject<(() => void) | null>
 }
 
-export function MindMapCanvas({ exportRef }: Props) {
+// Must live inside <ReactFlow> to access useReactFlow()
+function FitViewRegistrar({ fitViewRef }: { fitViewRef: MutableRefObject<(() => void) | null> }) {
+  const { fitView } = useReactFlow()
+
+  useEffect(() => {
+    fitViewRef.current = () => fitView({ padding: 0.15, duration: 300 })
+    return () => { fitViewRef.current = null }
+  }, [fitView, fitViewRef])
+
+  return null
+}
+
+export function MindMapCanvas({ exportRef, fitViewRef }: Props) {
   const visibleNodes = useAppStore((s) => s.visibleNodes)
   const visibleEdges = useAppStore((s) => s.visibleEdges)
   const projectRoot = useAppStore((s) => s.projectRoot)
@@ -47,6 +61,7 @@ export function MindMapCanvas({ exportRef }: Props) {
           fitViewOptions={{ padding: 0.15 }}
           proOptions={{ hideAttribution: true }}
         >
+          <FitViewRegistrar fitViewRef={fitViewRef} />
           <Background color="#334155" gap={20} />
           <Controls className="!bg-neutral-800 !border-neutral-700" />
           <MiniMap

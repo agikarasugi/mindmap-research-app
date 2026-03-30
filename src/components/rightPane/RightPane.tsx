@@ -1,4 +1,4 @@
-import { useRef, useCallback } from 'react'
+import { useRef, useCallback, useEffect, type MutableRefObject } from 'react'
 import { save } from '@tauri-apps/plugin-dialog'
 import { MapHeader } from './MapHeader'
 import { MindMapCanvas } from './MindMapCanvas'
@@ -7,8 +7,24 @@ import { useAppStore } from '../../store/appStore'
 
 export function RightPane() {
   const exportRef = useRef<HTMLDivElement>(null)
+  const fitViewRef = useRef<(() => void) | null>(null) as MutableRefObject<(() => void) | null>
   const saveBinaryFile = useAppStore((s) => s.saveBinaryFile)
   const saveFile = useAppStore((s) => s.saveFile)
+
+  const handleFitView = useCallback(() => {
+    fitViewRef.current?.()
+  }, [])
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'F') {
+        e.preventDefault()
+        handleFitView()
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [handleFitView])
 
   const handleExport = useCallback(
     async (format: ExportFormat) => {
@@ -48,9 +64,9 @@ export function RightPane() {
 
   return (
     <div className="flex h-full flex-col">
-      <MapHeader onExport={handleExport} />
+      <MapHeader onExport={handleExport} onFitView={handleFitView} />
       <div className="flex-1 overflow-hidden">
-        <MindMapCanvas exportRef={exportRef} />
+        <MindMapCanvas exportRef={exportRef} fitViewRef={fitViewRef} />
       </div>
     </div>
   )

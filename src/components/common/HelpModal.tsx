@@ -202,6 +202,7 @@ export function HelpModal({ onClose }: Props) {
           {/* ── Keyboard shortcuts ── */}
           <Section title="Keyboard shortcuts">
             <KV label="Ctrl+S / Cmd+S">Save the active file (YAML or Markdown source).</KV>
+            <KV label="Ctrl+Shift+F / Cmd+Shift+F">Fit the entire map into view.</KV>
             <KV label="Scroll wheel">Zoom the map canvas in or out.</KV>
             <KV label="Click + drag">Pan the map canvas.</KV>
             <KV label="Esc">Close this help panel.</KV>
