@@ -1,5 +1,6 @@
 import { useAppStore } from '../../store/appStore'
 import { SplitPane } from './SplitPane'
+import { FileNavigator } from './FileNavigator'
 import { LeftPane } from '../leftPane/LeftPane'
 import { RightPane } from '../rightPane/RightPane'
 
@@ -27,9 +28,12 @@ export function AppShell() {
         </button>
       </header>
 
-      {/* Main content */}
-      <div className="flex-1 overflow-hidden">
-        <SplitPane left={<LeftPane />} right={<RightPane />} />
+      {/* Main content: Navigator | Editor | Map */}
+      <div className="flex flex-1 overflow-hidden">
+        <FileNavigator />
+        <div className="flex-1 overflow-hidden">
+          <SplitPane left={<LeftPane />} right={<RightPane />} />
+        </div>
       </div>
     </div>
   )

@@ -1,16 +1,82 @@
 import { create } from 'zustand'
 import { open } from '@tauri-apps/plugin-dialog'
-import { readTextFile, writeTextFile, writeFile, exists } from '@tauri-apps/plugin-fs'
-import { join, resolve, dirname } from '@tauri-apps/api/path'
+import { readTextFile, writeTextFile, writeFile, readDir, exists } from '@tauri-apps/plugin-fs'
+import { join } from '@tauri-apps/api/path'
 import { parseYaml } from '../lib/yamlParser'
 import { buildGraph, computeHiddenIds } from '../lib/graphBuilder'
 import { applyDagreLayout } from '../lib/dagreLayout'
 import type { MindMapFlowNode, MindMapFlowEdge } from '../types/graph'
 import type { TabDescriptor, MarkdownTab } from '../types/tabs'
+import type { FileNode } from '../types/files'
+
+// Shown when a new project is created with no existing YAML files
+const STARTER_YAML = `\
+- title: My Mind Map
+  content: "Edit this file and click Render."
+  children:
+    - title: Topic 1
+      content: "Your first topic."
+    - title: Topic 2
+      content: "Your second topic."
+`
+
+// Directories that are never shown in the file navigator
+const SKIP_DIRS = new Set([
+  '.git', 'node_modules', 'target', 'dist', '.venv', '__pycache__', '.idea', '.vscode',
+])
+
+async function readProjectTree(dirPath: string, depth = 0): Promise<FileNode[]> {
+  if (depth > 3) return []
+
+  const entries = await readDir(dirPath)
+  const nodes: FileNode[] = []
+
+  for (const entry of entries) {
+    if (entry.name.startsWith('.') || SKIP_DIRS.has(entry.name)) continue
+
+    const entryPath = await join(dirPath, entry.name)
+
+    if (entry.isDirectory) {
+      const children = await readProjectTree(entryPath, depth + 1)
+      if (children.length > 0) {
+        nodes.push({ name: entry.name, path: entryPath, isDirectory: true, children })
+      }
+    } else if (
+      entry.name.endsWith('.yaml') ||
+      entry.name.endsWith('.yml') ||
+      entry.name.endsWith('.md')
+    ) {
+      nodes.push({ name: entry.name, path: entryPath, isDirectory: false })
+    }
+  }
+
+  return nodes.sort((a, b) => {
+    if (a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1
+    return a.name.localeCompare(b.name)
+  })
+}
+
+/** Collect all .yaml/.yml file paths from a tree */
+function collectYamlPaths(nodes: FileNode[]): string[] {
+  const result: string[] = []
+  for (const node of nodes) {
+    if (!node.isDirectory && (node.name.endsWith('.yaml') || node.name.endsWith('.yml'))) {
+      result.push(node.path)
+    } else if (node.isDirectory && node.children) {
+      result.push(...collectYamlPaths(node.children))
+    }
+  }
+  return result
+}
+
+function fileLabel(filePath: string): string {
+  return filePath.replace(/\\/g, '/').split('/').pop() ?? filePath
+}
 
 interface AppState {
   // Project
   projectRoot: string | null
+  projectFiles: FileNode[]
   mapYamlPath: string | null
   rawYaml: string
   yamlError: string | null
@@ -21,7 +87,6 @@ interface AppState {
   visibleNodes: MindMapFlowNode[]
   visibleEdges: MindMapFlowEdge[]
   collapsedNodeIds: Set<string>
-  /** parentId → childIds mapping, used for collapse BFS */
   childMap: Record<string, string[]>
 
   // Tabs
@@ -30,6 +95,8 @@ interface AppState {
 
   // Actions
   openProject: () => Promise<void>
+  loadMapFile: (filePath: string) => Promise<void>
+  refreshProjectFiles: () => Promise<void>
   updateRawYaml: (yaml: string) => void
   renderMap: () => void
   toggleCollapse: (nodeId: string) => void
@@ -43,6 +110,7 @@ interface AppState {
 
 export const useAppStore = create<AppState>((set, get) => ({
   projectRoot: null,
+  projectFiles: [],
   mapYamlPath: null,
   rawYaml: '',
   yamlError: null,
@@ -59,27 +127,69 @@ export const useAppStore = create<AppState>((set, get) => ({
     const selected = await open({ directory: true, multiple: false })
     if (!selected || typeof selected !== 'string') return
 
-    const mapYamlPath = await join(selected, 'map.yaml')
-    const yamlExists = await exists(mapYamlPath)
-    if (!yamlExists) {
-      set({ yamlError: 'No map.yaml found in the selected folder.' })
-      return
+    // Build file tree (yaml + md files only)
+    let projectFiles = await readProjectTree(selected)
+    const yamlPaths = collectYamlPaths(projectFiles)
+
+    let initialMapPath: string
+
+    if (yamlPaths.length === 0) {
+      // No YAML files — auto-create map.yaml with starter content
+      initialMapPath = await join(selected, 'map.yaml')
+      await writeTextFile(initialMapPath, STARTER_YAML)
+      // Rebuild tree to include the new file
+      projectFiles = await readProjectTree(selected)
+    } else {
+      // Prefer a root-level map.yaml; otherwise take first alphabetical yaml
+      const rootMapYaml = await join(selected, 'map.yaml')
+      initialMapPath = (await exists(rootMapYaml))
+        ? rootMapYaml
+        : yamlPaths[0]!
     }
 
-    const rawYaml = await readTextFile(mapYamlPath)
+    const rawYaml = await readTextFile(initialMapPath)
 
     set({
       projectRoot: selected,
-      mapYamlPath,
+      projectFiles,
+      mapYamlPath: initialMapPath,
       rawYaml,
       yamlError: null,
       collapsedNodeIds: new Set(),
-      tabs: [{ kind: 'yaml', id: 'yaml', label: 'map.yaml', filePath: mapYamlPath }],
+      tabs: [{ kind: 'yaml', id: 'yaml', label: fileLabel(initialMapPath), filePath: initialMapPath }],
       activeTabId: 'yaml',
     })
 
-    // Auto-render on open
     get().renderMap()
+  },
+
+  loadMapFile: async (filePath) => {
+    try {
+      const rawYaml = await readTextFile(filePath)
+      const label = fileLabel(filePath)
+
+      set((s) => ({
+        mapYamlPath: filePath,
+        rawYaml,
+        yamlError: null,
+        collapsedNodeIds: new Set(),
+        activeTabId: 'yaml',
+        tabs: s.tabs.map((t) =>
+          t.kind === 'yaml' ? { ...t, filePath, label } : t,
+        ),
+      }))
+
+      get().renderMap()
+    } catch (err) {
+      set({ yamlError: `Failed to load ${fileLabel(filePath)}: ${err instanceof Error ? err.message : String(err)}` })
+    }
+  },
+
+  refreshProjectFiles: async () => {
+    const { projectRoot } = get()
+    if (!projectRoot) return
+    const projectFiles = await readProjectTree(projectRoot)
+    set({ projectFiles })
   },
 
   updateRawYaml: (yaml) => set({ rawYaml: yaml }),
@@ -124,55 +234,44 @@ export const useAppStore = create<AppState>((set, get) => ({
       (e) => !hiddenIds.has(e.source) && !hiddenIds.has(e.target),
     )
 
-    // Update isCollapsed flag on nodes
     const updatedNodes = visibleNodes.map((n) => ({
       ...n,
       data: { ...n.data, isCollapsed: next.has(n.id) },
     }))
 
     const laid = applyDagreLayout(updatedNodes, visibleEdges)
-
     set({ collapsedNodeIds: next, visibleNodes: laid, visibleEdges })
   },
 
   openMarkdownTab: async (filePath) => {
     const { tabs } = get()
 
-    // Deduplicate by filePath
     const existing = tabs.find((t) => t.kind === 'markdown' && t.filePath === filePath)
     if (existing) {
       set({ activeTabId: existing.id })
       return
     }
 
-    // Derive label from filename
-    const parts = filePath.replace(/\\/g, '/').split('/')
-    const label = parts[parts.length - 1] ?? 'file.md'
-
     const newTab: MarkdownTab = {
       kind: 'markdown',
-      id: filePath, // use absolute path as stable id
-      label,
+      id: filePath,
+      label: fileLabel(filePath),
       filePath,
       viewMode: 'preview',
     }
 
-    set((s) => ({
-      tabs: [...s.tabs, newTab],
-      activeTabId: newTab.id,
-    }))
+    set((s) => ({ tabs: [...s.tabs, newTab], activeTabId: newTab.id }))
   },
 
   closeTab: (tabId) => {
     const { tabs, activeTabId } = get()
-    if (tabId === 'yaml') return // YAML tab is permanent
+    if (tabId === 'yaml') return
 
     const idx = tabs.findIndex((t) => t.id === tabId)
     const next = tabs.filter((t) => t.id !== tabId)
 
     let nextActive = activeTabId
     if (activeTabId === tabId) {
-      // Activate the tab to the left, or the YAML tab
       nextActive = next[Math.max(0, idx - 1)]?.id ?? 'yaml'
     }
 
@@ -197,6 +296,3 @@ export const useAppStore = create<AppState>((set, get) => ({
     await writeFile(filePath, data)
   },
 }))
-
-// Re-export resolve/dirname for use in components that need path ops
-export { resolve, dirname }

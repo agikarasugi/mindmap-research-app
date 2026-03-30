@@ -1,7 +1,7 @@
 export interface YamlTab {
   kind: 'yaml'
   id: 'yaml'
-  label: 'map.yaml'
+  label: string
   filePath: string
 }
 
