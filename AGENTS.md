@@ -195,6 +195,14 @@ Current grants:
 - `dialog:allow-open` — folder picker
 - `dialog:allow-save` — save-file dialog
 
+**Important — path scopes:** In Tauri v2, bare `fs:allow-*` strings only permit access to app-specific directories (AppData, Resources, etc.). To allow access to arbitrary user files, each fs permission must be declared as a scoped object:
+
+```json
+{ "identifier": "fs:allow-read-text-file", "allow": [{ "path": "$HOME/**" }, { "path": "/**" }] }
+```
+
+All five fs permissions in `capabilities/default.json` use this scoped form. If you add new fs permissions, follow the same pattern — otherwise file operations on project directories will fail with a "forbidden path" IPC error.
+
 ---
 
 ## Adding a new node shape
